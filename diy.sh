@@ -16,6 +16,3 @@ git clone https://github.com/Lienol/openwrt-package.git
 git clone https://github.com/vernesong/OpenClash.git
 rm -rf luci-theme-argon 
 git clone -b 18.06 https://github.com/jerrykuku/luci-theme-argon.git
-
-echo '修改默认主题'
-sed -i 's/config internal themes/config internal themes\n    option Argon  \"\/luci-static\/argon\"/g' feeds/luci/modules/luci-base/root/etc/config/luci
