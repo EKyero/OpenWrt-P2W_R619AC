@@ -1,0 +1,406 @@
+diff --git a/include/netfilter.mk b/include/netfilter.mk
+index 306975c31b..c95bcb504d 100644
+--- a/include/netfilter.mk
++++ b/include/netfilter.mk
+@@ -196,7 +196,6 @@ $(eval $(if $(NF_KMOD),$(call nf_add,IPT_NAT,CONFIG_NETFILTER_XT_NAT, $(P_XT)xt_
+ $(eval $(if $(NF_KMOD),$(call nf_add,IPT_NAT,CONFIG_IP_NF_NAT, $(P_V4)iptable_nat),))
+ $(eval $(if $(NF_KMOD),$(call nf_add,IPT_NAT6,CONFIG_IP6_NF_NAT, $(P_V6)ip6table_nat),))
+ $(eval $(if $(NF_KMOD),$(call nf_add,IPT_NAT6,CONFIG_IP6_NF_TARGET_MASQUERADE, $(P_V6)ip6t_MASQUERADE, lt 5.2),))
+-$(eval $(if $(NF_KMOD),$(call nf_add,IPT_NAT6,CONFIG_IP6_NF_TARGET_MASQUERADE, $(P_XT)xt_MASQUERADE, ge 5.2),))
+ $(eval $(if $(NF_KMOD),$(call nf_add,IPT_NAT6,CONFIG_IP6_NF_TARGET_NPT, $(P_V6)ip6t_NPT),))
+ 
+ # userland only
+diff --git a/package/base-files/files/bin/config_generate b/package/base-files/files/bin/config_generate
+index 3bf48d7216..15cb53ff03 100755
+--- a/package/base-files/files/bin/config_generate
++++ b/package/base-files/files/bin/config_generate
+@@ -20,7 +20,6 @@ generate_static_network() {
+ 			uci -q batch <<-EOF
+ 				delete network.globals
+ 				set network.globals='globals'
+-				set network.globals.ula_prefix='auto'
+ 			EOF
+ 		}
+ 
+@@ -242,7 +241,8 @@ generate_static_system() {
+ 		delete system.@system[0]
+ 		add system system
+ 		set system.@system[-1].hostname='OpenWrt'
+-		set system.@system[-1].timezone='UTC'
++		set system.@system[-1].timezone='CST-8'
++		set system.@system[-1].zonename='Asia/Shanghai'
+ 		set system.@system[-1].ttylogin='0'
+ 		set system.@system[-1].log_size='64'
+ 		set system.@system[-1].urandom_seed='0'
+@@ -251,10 +251,10 @@ generate_static_system() {
+ 		set system.ntp='timeserver'
+ 		set system.ntp.enabled='1'
+ 		set system.ntp.enable_server='0'
+-		add_list system.ntp.server='0.openwrt.pool.ntp.org'
+-		add_list system.ntp.server='1.openwrt.pool.ntp.org'
+-		add_list system.ntp.server='2.openwrt.pool.ntp.org'
+-		add_list system.ntp.server='3.openwrt.pool.ntp.org'
++		add_list system.ntp.server='ntp1.aliyun.com'
++		add_list system.ntp.server='time1.cloud.tencent.com'
++		add_list system.ntp.server='time.ustc.edu.cn'
++		add_list system.ntp.server='cn.pool.ntp.org'
+ 	EOF
+ 
+ 	if json_is_a system object; then
+diff --git a/package/base-files/files/etc/sysctl.d/10-default.conf b/package/base-files/files/etc/sysctl.d/10-default.conf
+index bc8c579695..454ba4bf67 100644
+--- a/package/base-files/files/etc/sysctl.d/10-default.conf
++++ b/package/base-files/files/etc/sysctl.d/10-default.conf
+@@ -16,6 +16,7 @@ net.ipv4.ip_forward=1
+ net.ipv4.icmp_echo_ignore_broadcasts=1
+ net.ipv4.icmp_ignore_bogus_error_responses=1
+ net.ipv4.igmp_max_memberships=100
++net.ipv4.tcp_fastopen=3
+ net.ipv4.tcp_fin_timeout=30
+ net.ipv4.tcp_keepalive_time=120
+ net.ipv4.tcp_syncookies=1
+diff --git a/package/firmware/ipq-wifi/Makefile b/package/firmware/ipq-wifi/Makefile
+index d70854f1a5..ebbe92b8c9 100644
+--- a/package/firmware/ipq-wifi/Makefile
++++ b/package/firmware/ipq-wifi/Makefile
+@@ -35,6 +35,7 @@ ALLWIFIBOARDS:= \
+ 	ezviz_cs-w3-wd1200g-eup \
+ 	linksys_ea8300 \
+ 	mobipromo_cm520-79f \
++	p2w_r619ac \
+ 	qxwlan_e2600ac
+ 
+ ALLWIFIPACKAGES:=$(foreach BOARD,$(ALLWIFIBOARDS),ipq-wifi-$(BOARD))
+@@ -106,6 +107,7 @@ $(eval $(call generate-ipq-wifi-package,engenius_emd1,EnGenius EMD1))
+ $(eval $(call generate-ipq-wifi-package,ezviz_cs-w3-wd1200g-eup,EZVIZ CS-W3-WD1200G EUP))
+ $(eval $(call generate-ipq-wifi-package,linksys_ea8300,Linksys EA8300))
+ $(eval $(call generate-ipq-wifi-package,mobipromo_cm520-79f,MobiPromo CM520-79F))
++$(eval $(call generate-ipq-wifi-package,p2w_r619ac,P&W R619AC))
+ $(eval $(call generate-ipq-wifi-package,qxwlan_e2600ac,Qxwlan E2600AC))
+ 
+ $(foreach PACKAGE,$(ALLWIFIPACKAGES),$(eval $(call BuildPackage,$(PACKAGE))))
+diff --git a/package/kernel/linux/files/sysctl-nf-conntrack.conf b/package/kernel/linux/files/sysctl-nf-conntrack.conf
+index 37baf5fd6f..ae15144847 100644
+--- a/package/kernel/linux/files/sysctl-nf-conntrack.conf
++++ b/package/kernel/linux/files/sysctl-nf-conntrack.conf
+@@ -3,7 +3,8 @@
+ 
+ net.netfilter.nf_conntrack_acct=1
+ net.netfilter.nf_conntrack_checksum=0
+-net.netfilter.nf_conntrack_max=16384
++net.netfilter.nf_conntrack_helper=1
++net.netfilter.nf_conntrack_max=65536
+ net.netfilter.nf_conntrack_tcp_timeout_established=7440
+ net.netfilter.nf_conntrack_udp_timeout=60
+ net.netfilter.nf_conntrack_udp_timeout_stream=180
+diff --git a/package/kernel/mac80211/files/lib/netifd/wireless/mac80211.sh b/package/kernel/mac80211/files/lib/netifd/wireless/mac80211.sh
+index f9a60792dc..2891b47cb1 100644
+--- a/package/kernel/mac80211/files/lib/netifd/wireless/mac80211.sh
++++ b/package/kernel/mac80211/files/lib/netifd/wireless/mac80211.sh
+@@ -106,7 +106,7 @@ mac80211_hostapd_setup_base() {
+ 	[ -n "$acs_exclude_dfs" ] && [ "$acs_exclude_dfs" -gt 0 ] &&
+ 		append base_cfg "acs_exclude_dfs=1" "$N"
+ 
+-	json_get_vars noscan ht_coex
++	json_get_vars noscan ht_coex vendor_vht
+ 	json_get_values ht_capab_list ht_capab tx_burst
+ 
+ 	set_default noscan 0
+@@ -222,7 +222,7 @@ mac80211_hostapd_setup_base() {
+ 		;;
+ 	esac
+ 
+-	if [ "$enable_ac" != "0" ]; then
++	if [ "$enable_ac" != "0" -o "$vendor_vht" = "1" ]; then
+ 		json_get_vars \
+ 			rxldpc:1 \
+ 			short_gi_80:1 \
+diff --git a/package/network/config/firewall/Makefile b/package/network/config/firewall/Makefile
+index bf2a1060eb..5cd419cbb8 100644
+--- a/package/network/config/firewall/Makefile
++++ b/package/network/config/firewall/Makefile
+@@ -28,7 +28,7 @@ define Package/firewall
+   SECTION:=net
+   CATEGORY:=Base system
+   TITLE:=OpenWrt C Firewall
+-  DEPENDS:=+libubox +libubus +libuci +libip4tc +IPV6:libip6tc +libxtables +kmod-ipt-core +kmod-ipt-conntrack +IPV6:kmod-nf-conntrack6 +kmod-ipt-nat
++  DEPENDS:=+libubox +libubus +libuci +libip4tc +IPV6:libip6tc +libxtables +kmod-ipt-core +kmod-ipt-conntrack +IPV6:kmod-nf-conntrack6 +kmod-ipt-nat +iptables-mod-fullconenat
+ endef
+ 
+ define Package/firewall/description
+diff --git a/package/network/config/firewall/files/firewall.config b/package/network/config/firewall/files/firewall.config
+index 8874e9882c..13ab2ef7a2 100644
+--- a/package/network/config/firewall/files/firewall.config
++++ b/package/network/config/firewall/files/firewall.config
+@@ -1,10 +1,12 @@
+ config defaults
+-	option syn_flood	1
+-	option input		ACCEPT
+-	option output		ACCEPT
+-	option forward		REJECT
++	option syn_flood		1
++	option fullcone			1
++	option input			ACCEPT
++	option output			ACCEPT
++	option forward			REJECT
++	option flow_offloading	1
+ # Uncomment this line to disable ipv6 rules
+-#	option disable_ipv6	1
++#	option disable_ipv6		1
+ 
+ config zone
+ 	option name		lan
+diff --git a/package/network/services/hostapd/files/hostapd.sh b/package/network/services/hostapd/files/hostapd.sh
+index 637f298ad9..252622b863 100644
+--- a/package/network/services/hostapd/files/hostapd.sh
++++ b/package/network/services/hostapd/files/hostapd.sh
+@@ -95,6 +95,7 @@ hostapd_common_add_device_config() {
+ 	config_add_int local_pwr_constraint
+ 	config_add_string require_mode
+ 	config_add_boolean legacy_rates
++	config_add_boolean vendor_vht
+ 
+ 	config_add_string acs_chan_bias
+ 	config_add_array hostapd_options
+@@ -110,7 +111,7 @@ hostapd_prepare_device_config() {
+ 	local base_cfg=
+ 
+ 	json_get_vars country country_ie beacon_int:100 dtim_period:2 doth require_mode legacy_rates \
+-		acs_chan_bias local_pwr_constraint spectrum_mgmt_required
++		acs_chan_bias local_pwr_constraint spectrum_mgmt_required vendor_vht
+ 
+ 	hostapd_set_log_options base_cfg
+ 
+@@ -145,6 +146,7 @@ hostapd_prepare_device_config() {
+ 	[ "$hwmode" = "g" ] && {
+ 		[ "$legacy_rates" -eq 0 ] && set_default rate_list "6000 9000 12000 18000 24000 36000 48000 54000"
+ 		[ -n "$require_mode" ] && set_default basic_rate_list "6000 12000 24000"
++		[ -n "$vendor_vht" ] && append base_cfg "vendor_vht=$vendor_vht" "$N"
+ 	}
+ 
+ 	case "$require_mode" in
+diff --git a/target/linux/generic/config-5.4 b/target/linux/generic/config-5.4
+index 21dd447cdf..05d1bc8f3c 100644
+--- a/target/linux/generic/config-5.4
++++ b/target/linux/generic/config-5.4
+@@ -3624,6 +3624,7 @@ CONFIG_NFS_V3=y
+ # CONFIG_NF_CONNTRACK_AMANDA is not set
+ # CONFIG_NF_CONNTRACK_BRIDGE is not set
+ # CONFIG_NF_CONNTRACK_EVENTS is not set
++# CONFIG_NF_CONNTRACK_CHAIN_EVENTS is not set
+ # CONFIG_NF_CONNTRACK_FTP is not set
+ # CONFIG_NF_CONNTRACK_H323 is not set
+ # CONFIG_NF_CONNTRACK_IPV4 is not set
+diff --git a/target/linux/ipq40xx/base-files/etc/board.d/02_network b/target/linux/ipq40xx/base-files/etc/board.d/02_network
+index 0e4b947c5f..8ca4ab29c1 100755
+--- a/target/linux/ipq40xx/base-files/etc/board.d/02_network
++++ b/target/linux/ipq40xx/base-files/etc/board.d/02_network
+@@ -30,10 +30,10 @@ ipq40xx_setup_interfaces()
+ 		ucidef_set_interfaces_lan_wan "eth1" "eth0"
+ 		;;
+ 	asus,rt-ac58u|\
++	p2w,r619ac-*|\
+ 	zyxel,nbg6617)
+-		ucidef_set_interfaces_lan_wan "eth0" "eth1"
+ 		ucidef_add_switch "switch0" \
+-			"0u@eth0" "1:lan:4" "2:lan:3" "3:lan:2" "4:lan:1"
++			"0t@eth0" "1:lan:4" "2:lan:3" "3:lan:2" "4:lan:1" "5:wan"
+ 		;;
+ 	avm,fritzbox-4040|\
+ 	linksys,ea6350v3|\
+@@ -140,6 +139,8 @@ ipq40xx_setup_macs()
+ 		wan_mac=$(mtd_get_mac_ascii devinfo hw_mac_addr)
+ 		lan_mac=$(macaddr_add "$wan_mac" 1)
+ 		;;
++	*)
++		wan_mac=$(macaddr_add $(cat /sys/class/net/eth0/address) 1)
+ 	esac
+ 
+ 	[ -n "$lan_mac" ] && ucidef_set_interface_macaddr "lan" $lan_mac
+diff --git a/target/linux/ipq40xx/base-files/etc/hotplug.d/firmware/11-ath10k-caldata b/target/linux/ipq40xx/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
+index 814d5b0371..ff44f2dd48 100644
+--- a/target/linux/ipq40xx/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
++++ b/target/linux/ipq40xx/base-files/etc/hotplug.d/firmware/11-ath10k-caldata
+@@ -52,6 +52,7 @@ case "$FIRMWARE" in
+ 	glinet,gl-b1300 |\
+ 	linksys,ea6350v3 |\
+ 	mobipromo,cm520-79f |\
++	p2w,r619ac-* |\
+ 	qcom,ap-dk01.1-c1)
+ 		caldata_extract "ART" 0x1000 0x2f20
+ 		;;
+@@ -135,6 +136,7 @@ case "$FIRMWARE" in
+ 	glinet,gl-b1300 |\
+ 	linksys,ea6350v3 |\
+ 	mobipromo,cm520-79f |\
++	p2w,r619ac-* |\
+ 	qcom,ap-dk01.1-c1)
+ 		caldata_extract "ART" 0x5000 0x2f20
+ 		;;
+diff --git a/target/linux/ipq40xx/base-files/lib/upgrade/platform.sh b/target/linux/ipq40xx/base-files/lib/upgrade/platform.sh
+index d3effdf7e2..b697c65dfc 100644
+--- a/target/linux/ipq40xx/base-files/lib/upgrade/platform.sh
++++ b/target/linux/ipq40xx/base-files/lib/upgrade/platform.sh
+@@ -66,6 +66,8 @@ platform_do_upgrade() {
+ 	cilab,meshpoint-one |\
+ 	engenius,eap2200 |\
+ 	mobipromo,cm520-79f |\
++	p2w,r619ac-64m |\
++	p2w,r619ac-128m |\
+ 	qxwlan,e2600ac-c2)
+ 		nand_do_upgrade "$1"
+ 		;;
+diff --git a/target/linux/ipq40xx/image/Makefile b/target/linux/ipq40xx/image/Makefile
+index bf69953eac..bd4b478638 100644
+--- a/target/linux/ipq40xx/image/Makefile
++++ b/target/linux/ipq40xx/image/Makefile
+@@ -560,6 +560,43 @@ endef
+ 
+ TARGET_DEVICES += openmesh_a62
+ 
++define Device/p2w_r619ac
++	$(call Device/FitzImage)
++	DEVICE_VENDOR := P&W
++	DEVICE_MODEL := R619AC
++	SOC := qcom-ipq4019
++	DEVICE_DTS_CONFIG := config@10
++	DEVICE_PACKAGES := ipq-wifi-p2w_r619ac
++endef
++
++define Device/p2w_r619ac-32m
++	$(call Device/p2w_r619ac)
++	DEVICE_VARIANT := 32M NOR
++	BLOCKSIZE := 64k
++	IMAGE_SIZE := 31232k
++	IMAGES += factory.bin
++	IMAGE/factory.bin := qsdk-ipq-factory-nor
++endef
++TARGET_DEVICES += p2w_r619ac-32m
++
++define Device/p2w_r619ac-64m
++	$(call Device/p2w_r619ac)
++	$(call Device/UbiFit)
++	DEVICE_VARIANT := 64M NAND
++	BLOCKSIZE := 128k
++	PAGESIZE := 2048
++	IMAGES += nand-factory.bin
++	IMAGE/nand-factory.bin := append-ubi | qsdk-ipq-factory-nand
++	SUPPORTED_DEVICES += p2w,r619ac
++endef
++TARGET_DEVICES += p2w_r619ac-64m
++
++define Device/p2w_r619ac-128m
++	$(call Device/p2w_r619ac-64m)
++	DEVICE_VARIANT := 128M NAND
++endef
++TARGET_DEVICES += p2w_r619ac-128m
++
+ define Device/qcom_ap-dk01.1-c1
+ 	DEVICE_VENDOR := Qualcomm Atheros
+ 	DEVICE_MODEL := AP-DK01.1
+diff --git a/target/linux/ipq40xx/patches-5.4/901-arm-boot-add-dts-files.patch b/target/linux/ipq40xx/patches-5.4/901-arm-boot-add-dts-files.patch
+index 46af5fb5c9..4f3ca09598 100644
+--- a/target/linux/ipq40xx/patches-5.4/901-arm-boot-add-dts-files.patch
++++ b/target/linux/ipq40xx/patches-5.4/901-arm-boot-add-dts-files.patch
+@@ -10,7 +10,7 @@ Signed-off-by: John Crispin <john@phrozen.org>
+ 
+ --- a/arch/arm/boot/dts/Makefile
+ +++ b/arch/arm/boot/dts/Makefile
+-@@ -837,11 +837,46 @@ dtb-$(CONFIG_ARCH_QCOM) += \
++@@ -837,11 +837,49 @@ dtb-$(CONFIG_ARCH_QCOM) += \
+  	qcom-apq8074-dragonboard.dtb \
+  	qcom-apq8084-ifc6540.dtb \
+  	qcom-apq8084-mtp.dtb \
+@@ -46,6 +46,9 @@ Signed-off-by: John Crispin <john@phrozen.org>
+ +	qcom-ipq4019-e2600ac-c1.dtb \
+ +	qcom-ipq4019-e2600ac-c2.dtb \
+ +	qcom-ipq4019-habanero-dvk.dtb \
+++	qcom-ipq4019-r619ac-32m.dtb \
+++	qcom-ipq4019-r619ac-64m.dtb \
+++	qcom-ipq4019-r619ac-128m.dtb \
+ +	qcom-ipq4019-rtl30vw.dtb \
+ +	qcom-ipq4019-u4019-32m.dtb \
+ +	qcom-ipq4019-wpj419.dtb \
+diff --git a/feeds/luci/applications/luci-app-firewall/htdocs/luci-static/resources/view/firewall/zones.js b/feeds/luci/applications/luci-app-firewall/htdocs/luci-static/resources/view/firewall/zones.js
+index 85e20a23c..be5fc8c34 100644
+--- a/feeds/luci/applications/luci-app-firewall/htdocs/luci-static/resources/view/firewall/zones.js
++++ b/feeds/luci/applications/luci-app-firewall/htdocs/luci-static/resources/view/firewall/zones.js
+@@ -43,6 +43,7 @@ return view.extend({
+ 
+ 		o = s.option(form.Flag, 'syn_flood', _('Enable SYN-flood protection'));
+ 		o = s.option(form.Flag, 'drop_invalid', _('Drop invalid packets'));
++		o = s.option(form.Flag, 'fullcone', _('Enable FullCone NAT'));
+ 
+ 		var p = [
+ 			s.option(form.ListValue, 'input', _('Input')),
+diff --git a/feeds/luci/applications/luci-app-samba/luasrc/model/cbi/samba.lua b/feeds/luci/applications/luci-app-samba/luasrc/model/cbi/samba.lua
+index e972874f5..5cdc1c38b 100644
+--- a/feeds/luci/applications/luci-app-samba/luasrc/model/cbi/samba.lua
++++ b/feeds/luci/applications/luci-app-samba/luasrc/model/cbi/samba.lua
+@@ -17,6 +17,10 @@ h = s:taboption("general", Flag, "homes", translate("Share home-directories"),
+         translate("Allow system users to reach their home directories via " ..
+                 "network shares"))
+ h.rmempty = false
++a = s:taboption("general", Flag, "autoshare", translate("Auto Share"),
++        translate("Auto share local disk which connected"))
++a.rmempty = false
++a.default = "1"
+ 
+ tmpl = s:taboption("template", Value, "_tmpl",
+ 	translate("Edit the template that is used for generating the samba configuration."),
+diff --git a/feeds/luci/modules/luci-mod-network/htdocs/luci-static/resources/view/network/interfaces.js b/feeds/luci/modules/luci-mod-network/htdocs/luci-static/resources/view/network/interfaces.js
+index fb3969e9d..4dbc7bc4c 100644
+--- a/feeds/luci/modules/luci-mod-network/htdocs/luci-static/resources/view/network/interfaces.js
++++ b/feeds/luci/modules/luci-mod-network/htdocs/luci-static/resources/view/network/interfaces.js
+@@ -880,6 +880,37 @@ return view.extend({
+ 		o = s.option(form.Flag, 'packet_steering', _('Packet Steering'), _('Enable packet steering across all CPUs. May help or hinder network speed.'));
+ 		o.optional = true;
+ 
++		s = m.section(form.GridSection, 'device', _('Device Configuration'));
++		s.addremove = true;
++		s.anonymous = true;
++
++		o = s.option(form.Value, 'name', _('Device'));
++		o.rmempty = false;
++
++		o = s.option(form.Value, 'type', _('Type'));
++		o.rmempty = true;
++		o.nocreate = true;
++		o.value('', _('none'));
++		o.value('macvlan', _('macvlan'));
++		o.value('8021q', _('8021q'));
++
++		o = s.option(form.Value, 'ifname', _('Interface'));
++		o.rmempty = true;
++
++		o = s.option(form.Value, 'mtu', _('Override MTU'));
++		o.placeholder = 1500;
++		o.datatype = 'range(64,9000)';
++		o.rmempty = true;
++
++		o = s.option(form.Value, 'macaddr', _('MAC-Address'));
++		o.datatype = 'macaddr'
++		o.rmempty = true;
++
++		o = s.option(form.Value, 'vid', _('VLAN ID'));
++		o.rmempty = true;
++		o.placeholder = 0;
++		o.datatype = "range(0,65535)"
++
+ 
+ 		if (dslModemType != null) {
+ 			s = m.section(form.TypedSection, 'dsl', _('DSL'));
+diff --git a/feeds/luci/modules/luci-mod-network/htdocs/luci-static/resources/view/network/wireless.js b/feeds/luci/modules/luci-mod-network/htdocs/luci-static/resources/view/network/wireless.js
+index 35ef2ba03..8341c2bea 100644
+--- a/feeds/luci/modules/luci-mod-network/htdocs/luci-static/resources/view/network/wireless.js
++++ b/feeds/luci/modules/luci-mod-network/htdocs/luci-static/resources/view/network/wireless.js
+@@ -904,6 +904,9 @@ return view.extend({
+ 					o.datatype = 'range(15,65535)';
+ 					o.placeholder = 100;
+ 					o.rmempty = true;
++
++					o = ss.taboption('advanced', form.Flag, 'vendor_vht', _('256QAM'), _('Enable 256QAM modulation. May not supported by some hardware!'));
++					o.rmempty = true;
+ 				}
+ 
+ 
