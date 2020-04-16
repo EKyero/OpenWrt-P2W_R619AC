@@ -27,7 +27,7 @@ env:
   REPO_BRANCH: master
   CONFIG_FILE: p2w_r619ac-128m.config.config
   DIFF_PATCH: diff.patch
-  DIY_SH: p2w_r619ac-128m.sh.sh
+  DIY_SH: p2w_r619ac-128m.sh
   SSH_ACTIONS: false
   UPLOAD_BIN_DIR: false
   UPLOAD_FIRMWARE: true
