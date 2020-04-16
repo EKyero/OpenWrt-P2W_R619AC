@@ -16,7 +16,7 @@ on:
     branches:
       - master
     paths:
-      - '.config'
+      - 'p2w_r619ac-128m.config'
 #  schedule:
 #    - cron: 0 8 * * 5
   watch:
@@ -25,7 +25,7 @@ on:
 env:
   REPO_URL: https://github.com/openwrt/openwrt
   REPO_BRANCH: master
-  CONFIG_FILE: p2w_r619ac-128m.config.config
+  CONFIG_FILE: p2w_r619ac-128m.config
   DIFF_PATCH: diff.patch
   DIY_SH: p2w_r619ac-128m.sh
   SSH_ACTIONS: false
