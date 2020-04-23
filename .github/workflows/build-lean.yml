@@ -16,7 +16,7 @@ on:
     branches:
       - master
     paths:
-      - 'lean_r619ac.config'
+      - '.config'
   schedule:
     - cron: 0 8 * * 5
 #  watch:
@@ -26,7 +26,7 @@ env:
   REPO_URL: https://github.com/coolsnowwolf/lede
   REPO_BRANCH: master
   CONFIG_FILE: .config
-  DIY_SH: lean_r619ac.sh
+  DIY_SH: diy.sh
   SSH_ACTIONS: false
   UPLOAD_BIN_DIR: false
   UPLOAD_FIRMWARE: true
