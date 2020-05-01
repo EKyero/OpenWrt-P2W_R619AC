@@ -14,5 +14,7 @@ git clone https://github.com/tzxiaozhen88/koolproxyR.git
 git clone https://github.com/rufengsuixing/luci-app-adguardhome.git
 git clone https://github.com/Lienol/openwrt-package.git
 git clone https://github.com/vernesong/OpenClash.git
+cd .. 
+cd lean  
 rm -rf luci-theme-argon 
 git clone -b 18.06 https://github.com/jerrykuku/luci-theme-argon.git
