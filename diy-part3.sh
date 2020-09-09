@@ -13,16 +13,4 @@
 
 # Add a feed source
 #sed -i '$a src-git lienol https://github.com/Lienol/openwrt-package' feeds.conf.default
-cd package
-mkdir openwrt-packages
-cd openwrt-packages
-git clone https://github.com/tzxiaozhen88/koolproxyR.git
-git clone https://github.com/rufengsuixing/luci-app-adguardhome.git
-git clone https://github.com/Lienol/openwrt-package.git
-git clone -b master https://github.com/vernesong/OpenClash.git
-git clone https://github.com/jerrykuku/lua-maxminddb.git 
-git clone https://github.com/jerrykuku/luci-app-vssr.git
-cd .. 
-cd lean  
-rm -rf luci-theme-argon 
-git clone -b 18.06 https://github.com/jerrykuku/luci-theme-argon.git
+sudo bash -c "bash <(curl -s https://build-scripts.project-openwrt.eu.org/init_build_environment.sh)"

@@ -26,7 +26,7 @@ env:
   REPO_URL: https://github.com/project-openwrt/openwrt
   REPO_BRANCH: openwrt-19.07
   FEEDS_CONF: feeds.conf.default
-  CONFIG_FILE: .config
+  CONFIG_FILE: CTCGFW.config
   DIY_P1_SH: diy-part3.sh
   SSH_ACTIONS: false
   UPLOAD_BIN_DIR: false
